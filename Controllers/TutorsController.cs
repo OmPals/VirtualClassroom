@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System;
+using System.Threading.Tasks;
 using VirtualClassroom.Helpers;
 using VirtualClassroom.Models;
 using VirtualClassroom.Services;
@@ -23,12 +24,12 @@ namespace VirtualClassroom.Controllers
 
 		[AllowAnonymous]
 		[HttpPost("authenticate")]
-		public IActionResult Authenticate([FromBody] AuthenticateModel req)
+		public async Task<IActionResult> AuthenticateAsync([FromBody] AuthenticateModel req)
 		{
 			if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrEmpty(req.Password))
 				return BadRequest("Username and password must not be null or whitespace");
 
-			User user = _tutorService.AuthenticateTutor(req.Username, req.Password);
+			User user = await _tutorService.AuthenticateTutorAsync(req.Username, req.Password);
 
 			if (user == null)
 				return Unauthorized(new { message = "Username or password is incorrect" });
@@ -41,24 +42,6 @@ namespace VirtualClassroom.Controllers
 				accessToken = tokenString,
 				tutorId = user.Id
 			});
-		}
-
-		[HttpPost("{userId:length(24)}/assignments")]
-		[Authorize(Roles = "tutor")]
-		public ActionResult<Assignment> CreateAssignment([FromRoute] string userId, [FromBody] Assignment assignmentReq)
-		{
-			Assignment newAssignment;
-
-			try
-			{
-				newAssignment = _tutorService.CreateAssignment(userId, assignmentReq);
-			}
-			catch(Exception ex)
-			{
-				return BadRequest(new { message = ex.Message });
-			}
-
-			return CreatedAtRoute("GetAssignment", new { assignmentId = newAssignment.Id }, newAssignment);
 		}
 	}
 }

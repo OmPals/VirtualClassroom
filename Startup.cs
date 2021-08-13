@@ -56,6 +56,8 @@ namespace VirtualClassroom
 
 			services.AddSingleton<IAssignmentService, AssignmentService>();
 
+			services.AddSingleton<ISubmissionService, SubmissionService>();
+
 			// configure strongly typed settings objects
 			var appSettingsSection = _configuration.GetSection("AppSettings");
 			services.Configure<AppSettings>(appSettingsSection);
@@ -72,13 +74,13 @@ namespace VirtualClassroom
 			{
 				x.Events = new JwtBearerEvents
 				{
-					OnTokenValidated = context =>
+					OnTokenValidated = async context =>
 					{
 						ClaimsPrincipal claims = context.Principal;
 						string userId = claims.FindFirstValue(ClaimTypes.NameIdentifier);
 
 						IUserService userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
-						User user = userService.GetById(userId);
+						User user = await userService.GetByIdAsync(userId);
 
 						context.Request.RouteValues.TryGetValue("userId", out object requestedUserId);
 
@@ -88,8 +90,6 @@ namespace VirtualClassroom
 							context.Response.StatusCode = 403;
 							context.Fail("Unauthorized");
 						}
-
-						return Task.CompletedTask;
 					}
 				};
 

@@ -1,15 +1,15 @@
 ﻿using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using VirtualClassroom.Models;
 
 namespace VirtualClassroom.Services
 {
 	public interface IAssignmentService
 	{
-		Assignment Get(string assignmentId);
-		Assignment CreateOne(Assignment assignment);
-
+		Task<Assignment> GetAsync(string assignmentId);
+		Task<Assignment> CreateOneAsync(Assignment assignment);
 		Assignment ValidateAssignment(Assignment assignment);
 		/*Assignment Update(string tutorId, string assignmentId, Assignment assignment);
 		bool Remove(string tutorId, string assignmentId);*/
@@ -27,12 +27,16 @@ namespace VirtualClassroom.Services
 			_assignments = database.GetCollection<Assignment>(settings.AssignmentsCollectionName);
 		}
 
-		public Assignment Get(string id) =>
-			_assignments.Find<Assignment>(assignment => assignment.Id == id).FirstOrDefault();
-
-		public Assignment CreateOne(Assignment assignment)
+		public async Task<Assignment> GetAsync(string id)
 		{
-			_assignments.InsertOne(assignment);
+			var x = await _assignments.FindAsync<Assignment>(assignment => assignment.Id == id);
+
+			return x.FirstOrDefault();
+		}
+
+		public async Task<Assignment> CreateOneAsync(Assignment assignment)
+		{
+			await _assignments.InsertOneAsync(assignment);
 			return assignment;
 		}
 
@@ -69,6 +73,12 @@ namespace VirtualClassroom.Services
 
 			return assignment;
 		}
+
+		
+
+		
+
+		// TODO: Update and Delete
 
 		/*public void UpdateOne(string id, Assignment assignmentIn) =>
 			_assignments.ReplaceOne(assignment => assignment.Id == id, assignmentIn);

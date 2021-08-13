@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using System;
+using System.Threading.Tasks;
 using VirtualClassroom.Helpers;
 using VirtualClassroom.Models;
 using static VirtualClassroom.Models.Enums;
@@ -8,9 +9,9 @@ namespace VirtualClassroom.Services
 {
 	public interface IUserService
 	{
-		User Authenticate(string username, string password, Role role);
-		User Create(User user, string password);
-		User GetById(string userId);
+		Task<User> AuthenticateAsync(string username, string password, Role role);
+		Task<User> CreateAsync(User user, string password);
+		Task<User> GetByIdAsync(string userId);
 	}
 
 	public class UserService : IUserService
@@ -24,15 +25,25 @@ namespace VirtualClassroom.Services
 
 			_users = database.GetCollection<User>(settings.UsersCollectionName);
 		}
-		public User GetByUsername(string username) =>
-			_users.Find<User>(user => user.Username == username).FirstOrDefault();
-
-		public User GetById(string id) =>
-			_users.Find<User>(user => user.Id == id).FirstOrDefault();
-
-		public User Create(User user)
+		public async Task<User> GetByUsernameAsync(string username)
 		{
-			_users.InsertOne(user);
+			var x = await _users.FindAsync<User>(user => user.Username == username);
+
+			return x.FirstOrDefault();
+		}
+			
+
+		public async Task<User> GetByIdAsync(string id)
+		{
+			var x = await _users.FindAsync<User>(user => user.Id == id);
+
+			return x.FirstOrDefault();
+		}
+			
+
+		public async Task<User> CreateAsync(User user)
+		{
+			await _users.InsertOneAsync(user);
 			return user;
 		}
 
@@ -42,9 +53,9 @@ namespace VirtualClassroom.Services
 		public void Remove(string id) =>
 			_users.DeleteOne(user => user.Id == id);
 
-		public User Authenticate(string username, string password, Role role)
+		public async Task<User> AuthenticateAsync(string username, string password, Role role)
 		{
-			User reqUser = GetByUsername(username);
+			User reqUser = await GetByUsernameAsync(username);
 
 			// check if username exists
 			if (reqUser == null)
@@ -55,7 +66,7 @@ namespace VirtualClassroom.Services
 					Role = role.ToString()
 				};
 
-				user = Create(user, password);
+				user = await CreateAsync(user, password);
 
 				return user;
 			}
@@ -69,12 +80,12 @@ namespace VirtualClassroom.Services
 			}
 		}
 
-		public User Create(User user, string password)
+		public async Task<User> CreateAsync(User user, string password)
 		{
 			if (string.IsNullOrWhiteSpace(password))
 				throw new Exception("password required");
 
-			User user1 = GetByUsername(user.Username);
+			User user1 = await GetByUsernameAsync(user.Username);
 			if (user1 != null)
 			{
 				return user1;
@@ -85,7 +96,7 @@ namespace VirtualClassroom.Services
 			user.PasswordHash = passwordHash;
 			user.PasswordSalt = passwordSalt;
 
-			return Create(user);
+			return await CreateAsync(user);
 		}
 
 		private static bool VerifyPasswordHash(string password, byte[] storedHash, byte[] storedSalt)

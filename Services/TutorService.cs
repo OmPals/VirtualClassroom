@@ -1,43 +1,68 @@
-﻿using VirtualClassroom.Models;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using VirtualClassroom.Models;
 
 namespace VirtualClassroom.Services
 {
 	public interface ITutorService
 	{
-		public User AuthenticateTutor(string username, string password);
+		public Task<User> AuthenticateTutorAsync(string username, string password);
 
-		public Assignment CreateAssignment(string tutorId, Assignment assignment);
+		public Task<Assignment> CreateAssignmentAsync(string tutor, Assignment assignment);
 	}
 
 	public class TutorService : ITutorService
 	{
 		private readonly IUserService _userService;
 		private readonly IAssignmentService _assignmentService;
+		private readonly ISubmissionService _submissionService;
 
-		public TutorService(IUserService userService, IAssignmentService assignmentService)
+		public TutorService(IUserService userService, IAssignmentService assignmentService, ISubmissionService submissionService)
 		{
 			_userService = userService;
 			_assignmentService = assignmentService;
+			_submissionService = submissionService;
 		}
 
-		public User AuthenticateTutor(string username, string password)
+		public async Task<User> AuthenticateTutorAsync(string username, string password)
 		{
-			User user = _userService.Authenticate(username, password, Enums.Role.tutor);
+			User user = await _userService.AuthenticateAsync(username, password, Enums.Role.tutor);
 
 			return user;
 		}
 
-		public Assignment CreateAssignment(string tutorId, Assignment assignment)
+		public async Task<Assignment> CreateAssignmentAsync(string tutor, Assignment assignment)
 		{
-			assignment.TutorId = tutorId;
+			assignment.Tutor = tutor;
 
 			assignment = _assignmentService.ValidateAssignment(assignment);
 
-			Assignment newAssignment = _assignmentService.CreateOne(assignment);
+			Assignment newAssignment = await _assignmentService.CreateOneAsync(assignment);
 
-			// TODO: Initiat Submission
+			// Initiate the submission students and set the status as PENDING
+			// Location: Submissions
+			await CreateBatchSubmissionsAsync(newAssignment);
 
 			return newAssignment;
+		}
+
+		public async Task<List<Submission>> CreateBatchSubmissionsAsync(Assignment assignment)
+		{
+			List<Submission> submissions = new List<Submission>();
+
+			foreach (string student in assignment.Students)
+			{
+				Submission submission = new Submission()
+				{
+					AssignmentId = assignment.Id,
+					Status = Enums.SubmissionStatus.PENDING.ToString(),
+					StudentUsername = student
+				};
+
+				submissions.Add(submission);
+			}
+
+			return await _submissionService.CreateBatchSubmissionsAsync(submissions);
 		}
 	}
 }

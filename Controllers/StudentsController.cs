@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using VirtualClassroom.Helpers;
 using VirtualClassroom.Models;
 using VirtualClassroom.Services;
@@ -22,12 +24,12 @@ namespace VirtualClassroom.Controllers
 
 		[AllowAnonymous]
 		[HttpPost("authenticate")]
-		public IActionResult Authenticate([FromBody] AuthenticateModel req)
+		public async Task<IActionResult> AuthenticateAsync([FromBody] AuthenticateModel req)
 		{
 			if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrEmpty(req.Password))
 				return BadRequest("Username and password must not be null or whitespace");
 
-			User user = _studentService.AuthenticateStudent(req.Username, req.Password);
+			User user = await _studentService.AuthenticateStudentAsync(req.Username, req.Password);
 
 			if (user == null)
 				return Unauthorized(new { message = "Username or password is incorrect" });
@@ -40,13 +42,6 @@ namespace VirtualClassroom.Controllers
 				accessToken = tokenString,
 				studentId = user.Id
 			});
-		}
-
-		[HttpGet("check")]
-		[Authorize(Roles = "student")]
-		public IActionResult CheckUserRole()
-		{
-			return Ok();
 		}
 	}
 }
