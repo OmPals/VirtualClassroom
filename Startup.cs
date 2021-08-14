@@ -19,10 +19,15 @@ namespace VirtualClassroom
 		private readonly IWebHostEnvironment _env;
 		private readonly IConfiguration _configuration;
 
-		public Startup(IWebHostEnvironment env, IConfiguration configuration)
+		public Startup(IWebHostEnvironment env)
 		{
 			_env = env;
-			_configuration = configuration;
+
+			var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
+				.AddJsonFile($"appsettings.Development.json", optional: false)
+				.AddEnvironmentVariables();
+
+			_configuration = builder.Build();
 		}
 
 		// This method gets called by the runtime. Use this method to add services to the container.
@@ -45,7 +50,6 @@ namespace VirtualClassroom
 
 			services.AddSingleton<ISubmissionDatabaseSettings>(sp =>
 				sp.GetRequiredService<IOptions<SubmissionDatabaseSettings>>().Value);
-
 
 			services.AddSingleton<IUserService, UserService>();
 
