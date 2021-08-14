@@ -14,10 +14,10 @@ namespace VirtualClassroom.Services
 		Task<User> AuthenticateAsync(string username, string password, Role role);
 		Task<User> CreateAsync(User user, string password);
 		Task<User> GetByIdAsync(string userId);
-		Task CreateUsersAssignmentSubmissions(List<AssignmentSubmission> assignmentSubmissions);
+		Task CreateUsersAssignmentSubmissionsAsync(List<AssignmentSubmission> assignmentSubmissions);
 		Task<User> GetByUsernameAsync(string username);
-		Task UpdateOne(string id, User userIn);
-		Task UpdateBatchSubmissionsAsync(Assignment newAssignment, bool remove);
+		Task UpdateOneAsync(string id, User userIn);
+		Task UpdateBatchAssignmentSubmissionsAsync(Assignment newAssignment, bool remove);
 		Task<List<string>> GetValidUsersAsync(List<string> users);
 	}
 
@@ -32,6 +32,8 @@ namespace VirtualClassroom.Services
 
 			_users = database.GetCollection<User>(settings.UsersCollectionName);
 		}
+
+		// Get user by username
 		public async Task<User> GetByUsernameAsync(string username)
 		{
 			var x = await _users.FindAsync<User>(user => user.Username == username);
@@ -39,6 +41,8 @@ namespace VirtualClassroom.Services
 			return x.FirstOrDefault();
 		}
 
+		// Remove unregistered usernames from the list
+		// Only keep authenitcated users
 		public async Task<List<string>> GetValidUsersAsync(List<string> users)
 		{
 			var x = await _users.FindAsync<User>(x => users.Contains(x.Username));
@@ -48,6 +52,7 @@ namespace VirtualClassroom.Services
 			return validUsers;
 		}
 
+		// Get user by id
 		public async Task<User> GetByIdAsync(string id)
 		{
 			var x = await _users.FindAsync<User>(user => user.Id == id);
@@ -55,21 +60,21 @@ namespace VirtualClassroom.Services
 			return x.FirstOrDefault();
 		}
 
-
+		// Create user
 		public async Task<User> CreateAsync(User user)
 		{
 			await _users.InsertOneAsync(user);
 			return user;
 		}
 
-		public async Task UpdateOne(string id, User userIn)
+		// Update one user
+		public async Task UpdateOneAsync(string id, User userIn)
 		{
 			await _users.ReplaceOneAsync(user => user.Id == id, userIn);
 		}
 
-		public void Remove(string id) =>
-			_users.DeleteOne(user => user.Id == id);
-
+		// Authenitcate user
+		// Get the user from database and verify the passwrod hash
 		public async Task<User> AuthenticateAsync(string username, string password, Role role)
 		{
 			User reqUser = await GetByUsernameAsync(username);
@@ -97,6 +102,8 @@ namespace VirtualClassroom.Services
 			}
 		}
 
+		// Create a user by user model and a password specified
+		// Store hash of the password
 		public async Task<User> CreateAsync(User user, string password)
 		{
 			if (string.IsNullOrWhiteSpace(password))
@@ -116,6 +123,7 @@ namespace VirtualClassroom.Services
 			return await CreateAsync(user);
 		}
 
+		// Verify the password hash
 		private static bool VerifyPasswordHash(string password, byte[] storedHash, byte[] storedSalt)
 		{
 			if (password == null) throw new ArgumentNullException("password");
@@ -135,6 +143,7 @@ namespace VirtualClassroom.Services
 			return true;
 		}
 
+		// Create the password hash
 		private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
 		{
 			if (password == null) throw new ArgumentNullException("password");
@@ -145,7 +154,8 @@ namespace VirtualClassroom.Services
 			passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
 		}
 
-		public async Task CreateUsersAssignmentSubmissions(List<AssignmentSubmission> assignmentSubmissions)
+		// Create multiple AssignmentUsers List for users
+		public async Task CreateUsersAssignmentSubmissionsAsync(List<AssignmentSubmission> assignmentSubmissions)
 		{
 			var listWrites = new List<WriteModel<User>>();
 
@@ -171,7 +181,8 @@ namespace VirtualClassroom.Services
 				await _users.BulkWriteAsync(listWrites);
 		}
 
-		public async Task UpdateBatchSubmissionsAsync(Assignment assignment, bool remove)
+		// Update the AssignmentSubmission List from user
+		public async Task UpdateBatchAssignmentSubmissionsAsync(Assignment assignment, bool remove)
 		{
 			var listWrites = new List<WriteModel<User>>();
 

@@ -10,7 +10,7 @@ namespace VirtualClassroom.Services
 	{
 		Task<List<Submission>> CreateBatchSubmissionsAsync(List<Submission> submissions);
 		Task<Submission> GetByAssignmentStudentAsync(string assignmentId, string studentUsername);
-		Task UpdateOne(Submission submissionIn);
+		Task UpdateOneAsync(Submission submissionIn);
 		Task<List<Submission>> GetByAssignmentAsync(string assignmentId);
 		Task RemoveManyAsync(string assignmentId, List<string> deletingStudents);
 	}
@@ -27,6 +27,7 @@ namespace VirtualClassroom.Services
 			_submissions = database.GetCollection<Submission>(settings.SubmissionsCollectionName);
 		}
 
+		// Get submission by assignment id and student username
 		public async Task<Submission> GetByAssignmentStudentAsync(string assignmentId, string studentUsername)
 		{
 			var x = await _submissions.FindAsync(submission => submission.AssignmentId == assignmentId && submission.StudentUsername == studentUsername);
@@ -34,6 +35,7 @@ namespace VirtualClassroom.Services
 			return x.FirstOrDefault();
 		}
 
+		// Get submissions by assignment id
 		public async Task<List<Submission>> GetByAssignmentAsync(string assignmentId)
 		{
 			var x = await _submissions.FindAsync(submission => submission.AssignmentId == assignmentId);
@@ -41,14 +43,17 @@ namespace VirtualClassroom.Services
 			return x.ToList();
 		}
 
-		public async Task UpdateOne(Submission submissionIn)
+		// Update one submission by id
+		public async Task UpdateOneAsync(Submission submissionIn)
 		{
 			await _submissions.ReplaceOneAsync(submission =>
 				submission.Id == submissionIn.Id, submissionIn);
 		}
 
+		// Create multiple submission documents in single network call
 		public async Task<List<Submission>> CreateBatchSubmissionsAsync(List<Submission> submissions)
 		{
+			// Initiate list writes
 			var listWrites = new List<WriteModel<Submission>>();
 
 			foreach (Submission submission in submissions)
@@ -67,6 +72,7 @@ namespace VirtualClassroom.Services
 			return submissions;
 		}
 
+		// Remove multiple submissions by assignment and student username
 		public async Task RemoveManyAsync(string assignmentId, List<string> deletingStudents)
 		{
 			await _submissions.DeleteManyAsync(x => x.AssignmentId == assignmentId && deletingStudents.Contains(x.StudentUsername));

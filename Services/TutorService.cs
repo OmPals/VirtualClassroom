@@ -9,10 +9,10 @@ namespace VirtualClassroom.Services
 	{
 		Task<User> AuthenticateTutorAsync(string username, string password);
 		Task<Assignment> CreateAssignmentAsync(string tutor, Assignment assignment);
-		Task<List<Submission>> GetSubmissionsByAssignmentTutor(string assignmentId, string username);
-		Task<List<Assignment>> GetAssignmentsByFilter(string username, string filter);
-		Task UpdateAssignment(string assignmentId, Assignment assignment, string username);
-		Task DeleteAssignment(string assignmentId, string username);
+		Task<List<Submission>> GetSubmissionsByAssignmentTutorAsync(string assignmentId, string username);
+		Task<List<Assignment>> GetAssignmentsByTutorStatusAsync(string username, string filter);
+		Task UpdateOneAssignmentAsync(string assignmentId, Assignment assignment, string username);
+		Task DeleteOneAssignmentAsync(string assignmentId, string username);
 	}
 
 	public class TutorService : ITutorService
@@ -28,6 +28,7 @@ namespace VirtualClassroom.Services
 			_submissionService = submissionService;
 		}
 
+		// Authenticate tutor
 		public async Task<User> AuthenticateTutorAsync(string username, string password)
 		{
 			User user = await _userService.AuthenticateAsync(username, password, Enums.Role.tutor);
@@ -35,6 +36,9 @@ namespace VirtualClassroom.Services
 			return user;
 		}
 
+		// Create assignment
+		// Embed assignment in student with a submission
+		// Create subbmissions for students included
 		public async Task<Assignment> CreateAssignmentAsync(string tutor, Assignment assignment)
 		{
 			assignment.Tutor = tutor;
@@ -50,9 +54,12 @@ namespace VirtualClassroom.Services
 			return newAssignment;
 		}
 
+		// Create multiple submissions in a single network call
 		public async Task<List<Submission>> CreateBatchSubmissionsAsync(Assignment assignment)
 		{
 			List<Submission> submissions = new List<Submission>();
+
+			// Initiate AssignmentSubmission
 			List<AssignmentSubmission> assignmentSubmissions = new List<AssignmentSubmission>();
 
 			assignment.Students = await _userService.GetValidUsersAsync(assignment.Students);
@@ -83,16 +90,17 @@ namespace VirtualClassroom.Services
 				assignmentSubmissions.Add(assignmentSubmission);
 			}
 
-			await _userService.CreateUsersAssignmentSubmissions(assignmentSubmissions);
+			await _userService.CreateUsersAssignmentSubmissionsAsync(assignmentSubmissions);
 
 			return submissions;
 		}
 
-		public async Task<List<Submission>> GetSubmissionsByAssignmentTutor(string assignmentId, string username)
+		// Get list of submissions by assignment id and tutor username
+		public async Task<List<Submission>> GetSubmissionsByAssignmentTutorAsync(string assignmentId, string tutorUsername)
 		{
 			Assignment assignment = await _assignmentService.GetAsync(assignmentId);
 
-			if (assignment == null || assignment.Tutor != username)
+			if (assignment == null || assignment.Tutor != tutorUsername)
 			{
 				throw new Exception("Assignment not found");
 			}
@@ -103,26 +111,31 @@ namespace VirtualClassroom.Services
 			return submissions;
 		}
 
-		public async Task<List<Assignment>> GetAssignmentsByFilter(string username, string filter)
+		// Get assignments by status filter
+		public async Task<List<Assignment>> GetAssignmentsByTutorStatusAsync(string tutorUsername, string statusFilter)
 		{
 			// Validate filter
-			if (!string.IsNullOrWhiteSpace(filter) && !Enum.IsDefined(typeof(Enums.AssignmentStatus), filter))
+			if (!string.IsNullOrWhiteSpace(statusFilter) && !Enum.IsDefined(typeof(Enums.AssignmentStatus), statusFilter))
 			{
 				throw new Exception("Invalid filter for assignments");
 			}
 
 			// Paginate
-			List<Assignment> assignments = await _assignmentService.GetByTutorStatusAsync(username, filter);
+			List<Assignment> assignments = await _assignmentService.GetByTutorStatusAsync(tutorUsername, statusFilter);
 
 			return assignments;
 		}
 
-		public async Task UpdateAssignment(string assignmentId, Assignment assignment, string username)
+		// Update one assignment
+		// Duplicate this update for each student
+		// If students get updated then remove the submissions for missing students, 
+		// Add submissions for new students and update the embedded assignment for the rest
+		public async Task UpdateOneAssignmentAsync(string assignmentId, Assignment assignment, string tutorUsername)
 		{
 			Assignment oldAssignment = await _assignmentService.GetAsync(assignmentId);
 
 			// Old assignment does not exist
-			if (oldAssignment == null || username != oldAssignment.Tutor)
+			if (oldAssignment == null || tutorUsername != oldAssignment.Tutor)
 			{
 				throw new Exception("Assignment does not exist or tutor does not have access to it");
 			}
@@ -196,7 +209,7 @@ namespace VirtualClassroom.Services
 			await CreateBatchSubmissionsAsync(newAssignment);
 
 			newAssignment.Students = updatingStudents;
-			await _userService.UpdateBatchSubmissionsAsync(newAssignment, false);
+			await _userService.UpdateBatchAssignmentSubmissionsAsync(newAssignment, false);
 
 			foreach (string student in oldStudents)
 			{
@@ -208,13 +221,16 @@ namespace VirtualClassroom.Services
 			}
 
 			newAssignment.Students = deletingStudents;
-			await _userService.UpdateBatchSubmissionsAsync(newAssignment, true);
+			await _userService.UpdateBatchAssignmentSubmissionsAsync(newAssignment, true);
 
 			// Remove from submission collection
 			await _submissionService.RemoveManyAsync(assignmentId, deletingStudents);
 		}
 
-		public async Task DeleteAssignment(string assignmentId, string username)
+		// Delete assignment 
+		// Remove the submissions of respective students
+		// Remove the Embedded AssignmentSubmission from user
+		public async Task DeleteOneAssignmentAsync(string assignmentId, string username)
 		{
 			Assignment assignment = await _assignmentService.GetAsync(assignmentId);
 
@@ -228,7 +244,7 @@ namespace VirtualClassroom.Services
 			// Remove from submission collection
 			await _submissionService.RemoveManyAsync(assignmentId, deletingStudents);
 
-			await _userService.UpdateBatchSubmissionsAsync(assignment, true);
+			await _userService.UpdateBatchAssignmentSubmissionsAsync(assignment, true);
 
 			await _assignmentService.DeleteOneAsync(assignmentId);
 		}

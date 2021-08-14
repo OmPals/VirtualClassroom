@@ -22,6 +22,11 @@ namespace VirtualClassroom.Controllers
 			_studentService = studentService;
 		}
 
+		/// <summary>
+		/// Create assignment
+		/// </summary>
+		/// <param name="assignmentReq"></param>
+		/// <returns></returns>
 		[HttpPost]
 		[Authorize(Roles = "tutor")]
 		public async Task<ActionResult<Assignment>> CreateAssignmentAsync([FromBody] Assignment assignmentReq)
@@ -51,7 +56,7 @@ namespace VirtualClassroom.Controllers
 			{
 				try
 				{
-					List<Submission> submissions = await _tutorService.GetSubmissionsByAssignmentTutor(assignmentId, username);
+					List<Submission> submissions = await _tutorService.GetSubmissionsByAssignmentTutorAsync(assignmentId, username);
 
 					return Ok(submissions);
 				}
@@ -85,7 +90,7 @@ namespace VirtualClassroom.Controllers
 			{
 				try
 				{
-					List<Assignment> assignments = await _tutorService.GetAssignmentsByFilter(username, filterAssignments);
+					List<Assignment> assignments = await _tutorService.GetAssignmentsByTutorStatusAsync(username, filterAssignments);
 
 					return Ok(assignments);
 				}
@@ -98,7 +103,7 @@ namespace VirtualClassroom.Controllers
 			{
 				try
 				{
-					List<AssignmentSubmission> assignmentSubmissions = await _studentService.GetAssignmentSubmissionByFilter(username, filterAssignments, filterSubmissions);
+					List<AssignmentSubmission> assignmentSubmissions = await _studentService.GetAssignmentSubmissionByFilterAsync(username, filterAssignments, filterSubmissions);
 
 					return Ok(assignmentSubmissions);
 				}
@@ -116,7 +121,7 @@ namespace VirtualClassroom.Controllers
 			string username = User.FindFirstValue(ClaimTypes.Name);
 			try
 			{
-				await _tutorService.UpdateAssignment(assignmentId, assignment, username);
+				await _tutorService.UpdateOneAssignmentAsync(assignmentId, assignment, username);
 
 				return Ok();
 			}
@@ -133,7 +138,7 @@ namespace VirtualClassroom.Controllers
 			string username = User.FindFirstValue(ClaimTypes.Name);
 			try
 			{
-				await _tutorService.DeleteAssignment(assignmentId, username);
+				await _tutorService.DeleteOneAssignmentAsync(assignmentId, username);
 
 				return NoContent();
 			}

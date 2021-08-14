@@ -28,6 +28,7 @@ namespace VirtualClassroom.Services
 			_assignments = database.GetCollection<Assignment>(settings.AssignmentsCollectionName);
 		}
 
+		// Get assignment by Id from Assignments
 		public async Task<Assignment> GetAsync(string id)
 		{
 			var x = await _assignments.FindAsync<Assignment>(assignment => assignment.Id == id);
@@ -35,22 +36,24 @@ namespace VirtualClassroom.Services
 			return x.FirstOrDefault();
 		}
 
-
-		public async Task<List<Assignment>> GetByTutorStatusAsync(string username, string filter)
+		// Get list of assignments by tutor's user name and status filter
+		public async Task<List<Assignment>> GetByTutorStatusAsync(string tutorUsername, string statusFilter)
 		{
-			var x = !string.IsNullOrWhiteSpace(filter) ?
-						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == username && assignment.Status == filter) :
-						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == username);
+			var x = !string.IsNullOrWhiteSpace(statusFilter) ?
+						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername && assignment.Status == statusFilter) :
+						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername);
 
 			return x.ToList();
 		}
 
+		// Create assignment
 		public async Task<Assignment> CreateOneAsync(Assignment assignment)
 		{
 			await _assignments.InsertOneAsync(assignment);
 			return assignment;
 		}
 
+		// Validate the properties of assignment
 		public Assignment ValidateAssignmentAsync(Assignment assignment)
 		{
 			DateTime currentTime = DateTime.UtcNow;
@@ -85,11 +88,13 @@ namespace VirtualClassroom.Services
 			return assignment;
 		}
 
+		// Update one assignment by id
 		public async Task UpdateOneAsync(string id, Assignment assignmentIn)
 		{
 			await _assignments.ReplaceOneAsync(assignment => assignment.Id == id, assignmentIn);
 		}
 
+		// Delete one assignment by id
 		public async Task DeleteOneAsync(string id)
 		{
 			await _assignments.DeleteOneAsync(x => x.Id == id);

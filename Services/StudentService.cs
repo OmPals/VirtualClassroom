@@ -11,7 +11,7 @@ namespace VirtualClassroom.Services
 		Task<User> AuthenticateStudentAsync(string username, string password);
 		Task<Submission> CreateSubmissionAsync(string username, Submission submission);
 		Task<Submission> GetSubmissionByAssignmentStudentAsync(string assignmentId, string username);
-		Task<List<AssignmentSubmission>> GetAssignmentSubmissionByFilter(string username, string filterAssignments, string filterSubmissions);
+		Task<List<AssignmentSubmission>> GetAssignmentSubmissionByFilterAsync(string username, string filterAssignments, string filterSubmissions);
 	}
 
 	public class StudentService : IStudentService
@@ -27,6 +27,7 @@ namespace VirtualClassroom.Services
 			_assignmentService = assignmentService;
 		}
 
+		// Authenticate student
 		public async Task<User> AuthenticateStudentAsync(string username, string password)
 		{
 			User user = await _userService.AuthenticateAsync(username, password, Enums.Role.student);
@@ -34,11 +35,12 @@ namespace VirtualClassroom.Services
 			return user;
 		}
 
-		public async Task<Submission> CreateSubmissionAsync(string username, Submission submission)
+		// Create submission in Sumissions and Embed the submission into user document for efficient reads
+		public async Task<Submission> CreateSubmissionAsync(string studentUsername, Submission submission)
 		{
 			DateTime currentTime = DateTime.UtcNow;
 
-			Submission oldSubmission = await _submissionService.GetByAssignmentStudentAsync(submission.AssignmentId, username);
+			Submission oldSubmission = await _submissionService.GetByAssignmentStudentAsync(submission.AssignmentId, studentUsername);
 
 			if (oldSubmission == null)
 			{
@@ -70,9 +72,9 @@ namespace VirtualClassroom.Services
 				TutorUsername = oldSubmission.TutorUsername
 			};
 
-			await _submissionService.UpdateOne(newSubmission);
+			await _submissionService.UpdateOneAsync(newSubmission);
 
-			User student = await _userService.GetByUsernameAsync(username);
+			User student = await _userService.GetByUsernameAsync(studentUsername);
 
 			List<AssignmentSubmission> assignmentSubmissions = student.AssignmentSubmissions;
 
@@ -87,42 +89,44 @@ namespace VirtualClassroom.Services
 
 			student.AssignmentSubmissions = assignmentSubmissions;
 
-			await _userService.UpdateOne(student.Id, student);
+			await _userService.UpdateOneAsync(student.Id, student);
 
 			return newSubmission;
 		}
 
-		public async Task<List<AssignmentSubmission>> GetAssignmentSubmissionByFilter(string username, string filterAssignments, string filterSubmissions)
+		// Filter assignments and submissions by assignmnet status and submission status
+		public async Task<List<AssignmentSubmission>> GetAssignmentSubmissionByFilterAsync(string studentUsername, string assignmentStatusFilter, string submissionStatusFilter)
 		{
-			if (!string.IsNullOrWhiteSpace(filterSubmissions) && !Enum.IsDefined(typeof(Enums.SubmissionStatus), filterSubmissions))
+			if (!string.IsNullOrWhiteSpace(submissionStatusFilter) && !Enum.IsDefined(typeof(Enums.SubmissionStatus), submissionStatusFilter))
 			{
 				throw new Exception("Invalid filter on submissions");
 			}
 
 			// Validate filter
-			if (!string.IsNullOrWhiteSpace(filterAssignments) && !Enum.IsDefined(typeof(Enums.AssignmentStatus), filterAssignments))
+			if (!string.IsNullOrWhiteSpace(assignmentStatusFilter) && !Enum.IsDefined(typeof(Enums.AssignmentStatus), assignmentStatusFilter))
 			{
 				throw new Exception("Invalid filter for assignments");
 			}
 
-			User user = await _userService.GetByUsernameAsync(username);
+			User user = await _userService.GetByUsernameAsync(studentUsername);
 
 			List<AssignmentSubmission> assignmentSubmissions = user.AssignmentSubmissions;
 
-			if (!string.IsNullOrWhiteSpace(filterAssignments))
+			if (!string.IsNullOrWhiteSpace(assignmentStatusFilter))
 			{
-				assignmentSubmissions = assignmentSubmissions.Where(x => x.Assignment.Status == filterAssignments).ToList();
+				assignmentSubmissions = assignmentSubmissions.Where(x => x.Assignment.Status == assignmentStatusFilter).ToList();
 			}
 
-			if (filterSubmissions != Enums.SubmissionStatus.ALL.ToString() && !string.IsNullOrWhiteSpace(filterSubmissions))
+			if (submissionStatusFilter != Enums.SubmissionStatus.ALL.ToString() && !string.IsNullOrWhiteSpace(submissionStatusFilter))
 			{
-				assignmentSubmissions = assignmentSubmissions.Where(x => x.Submission.Status == filterSubmissions).ToList();
+				assignmentSubmissions = assignmentSubmissions.Where(x => x.Submission.Status == submissionStatusFilter).ToList();
 			}
 
 			return assignmentSubmissions;
 		}
 
-		public async Task<Submission> GetSubmissionByAssignmentStudentAsync(string assignmentId, string username)
+		// Get sumission by assignment id and student username 
+		public async Task<Submission> GetSubmissionByAssignmentStudentAsync(string assignmentId, string studentUsername)
 		{
 			Assignment assignment = await _assignmentService.GetAsync(assignmentId);
 
@@ -131,7 +135,7 @@ namespace VirtualClassroom.Services
 				throw new Exception("Assignment not found");
 			}
 
-			Submission submission = await _submissionService.GetByAssignmentStudentAsync(assignmentId, username);
+			Submission submission = await _submissionService.GetByAssignmentStudentAsync(assignmentId, studentUsername);
 
 			return submission;
 		}
