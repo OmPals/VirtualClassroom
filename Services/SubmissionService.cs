@@ -9,7 +9,6 @@ namespace VirtualClassroom.Services
 	public interface ISubmissionService
 	{
 		Task<List<Submission>> CreateBatchSubmissionsAsync(List<Submission> submissions);
-		Task<List<Submission>> GetSubmissionsByStudent(string studentUsername, string statusFilter);
 		Task<Submission> GetByAssignmentStudentAsync(string assignmentId, string studentUsername);
 		Task UpdateOne(Submission submissionIn);
 		Task<List<Submission>> GetByAssignmentAsync(string assignmentId);
@@ -42,15 +41,6 @@ namespace VirtualClassroom.Services
 			return x.ToList();
 		}
 
-		public async Task<List<Submission>> GetSubmissionsByStudent(string studentUsername, string statusFilter)
-		{
-			var x = string.IsNullOrWhiteSpace(statusFilter) ?
-						await _submissions.FindAsync(submission => submission.StudentUsername == studentUsername) :
-						await _submissions.FindAsync(submission => submission.StudentUsername == studentUsername && submission.Status == statusFilter);
-
-			return x.ToList();
-		}
-
 		public async Task UpdateOne(Submission submissionIn)
 		{
 			await _submissions.ReplaceOneAsync(submission =>
@@ -71,7 +61,7 @@ namespace VirtualClassroom.Services
 				}
 			}
 
-			if(listWrites.Count > 0)
+			if (listWrites.Count > 0)
 				await _submissions.BulkWriteAsync(listWrites);
 
 			return submissions;

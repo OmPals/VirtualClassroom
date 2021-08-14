@@ -142,5 +142,24 @@ namespace VirtualClassroom.Controllers
 				return BadRequest(new { message = ex.Message });
 			}
 		}
+
+		[HttpPost("{assignmentId:length(24)}/submission")]
+		[Authorize(Roles = "student")]
+		public async Task<ActionResult> CreateSubmission([FromRoute] string assignmentId, [FromBody] Submission submission)
+		{
+			string username = User.FindFirstValue(ClaimTypes.Name);
+			submission.AssignmentId = assignmentId;
+
+			try
+			{
+				submission = await _studentService.CreateSubmissionAsync(username, submission);
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
+
+			return CreatedAtRoute("GetAssignment", new { assignmentId = submission.Id }, submission);
+		}
 	}
 }

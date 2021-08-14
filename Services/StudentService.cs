@@ -34,11 +34,6 @@ namespace VirtualClassroom.Services
 			return user;
 		}
 
-		/*public async Task<List<Submission>> GetSubmissions(string username, string status)
-		{
-
-		}*/
-
 		public async Task<Submission> CreateSubmissionAsync(string username, Submission submission)
 		{
 			DateTime currentTime = DateTime.UtcNow;
@@ -57,7 +52,7 @@ namespace VirtualClassroom.Services
 
 			Assignment assignment = await _assignmentService.GetAsync(submission.AssignmentId);
 
-			if(assignment == null)
+			if (assignment == null)
 			{
 				throw new Exception("Assignment does not exist");
 			}
@@ -65,7 +60,7 @@ namespace VirtualClassroom.Services
 			Submission newSubmission = new Submission()
 			{
 				Id = oldSubmission.Id,
-				StudentUsername = username,
+				StudentUsername = oldSubmission.StudentUsername,
 				Status = assignment.DeadlineDate < currentTime ?
 								Enums.SubmissionStatus.OVERDUE.ToString() :
 								Enums.SubmissionStatus.SUBMITTED.ToString(),
@@ -85,7 +80,7 @@ namespace VirtualClassroom.Services
 
 			int x = assignmentSubmissions.IndexOf(assignmentSubmission);
 
-			if(x != -1)
+			if (x != -1)
 			{
 				assignmentSubmissions[x].Submission = newSubmission;
 			}
