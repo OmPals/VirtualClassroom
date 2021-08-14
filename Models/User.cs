@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Collections.Generic;
 
 namespace VirtualClassroom.Models
 {
@@ -12,5 +13,6 @@ namespace VirtualClassroom.Models
 		public string Role { get; set; }
 		public byte[] PasswordHash { get; set; }
 		public byte[] PasswordSalt { get; set; }
+		public List<AssignmentSubmission> AssignmentSubmissions { get; set; }
 	}
 }

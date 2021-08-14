@@ -1,5 +1,4 @@
 ﻿using MongoDB.Driver;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,12 +9,11 @@ namespace VirtualClassroom.Services
 	public interface ISubmissionService
 	{
 		Task<List<Submission>> CreateBatchSubmissionsAsync(List<Submission> submissions);
-
 		Task<List<Submission>> GetSubmissionsByStudent(string studentUsername, string statusFilter);
-
 		Task<Submission> GetByAssignmentStudentAsync(string assignmentId, string studentUsername);
-
 		Task UpdateOne(Submission submissionIn);
+		Task<List<Submission>> GetByAssignmentAsync(string assignmentId);
+		Task RemoveManyAsync(string assignmentId, List<string> deletingStudents);
 	}
 
 	public class SubmissionService : ISubmissionService
@@ -35,6 +33,13 @@ namespace VirtualClassroom.Services
 			var x = await _submissions.FindAsync(submission => submission.AssignmentId == assignmentId && submission.StudentUsername == studentUsername);
 
 			return x.FirstOrDefault();
+		}
+
+		public async Task<List<Submission>> GetByAssignmentAsync(string assignmentId)
+		{
+			var x = await _submissions.FindAsync(submission => submission.AssignmentId == assignmentId);
+
+			return x.ToList();
 		}
 
 		public async Task<List<Submission>> GetSubmissionsByStudent(string studentUsername, string statusFilter)
@@ -66,9 +71,15 @@ namespace VirtualClassroom.Services
 				}
 			}
 
-			await _submissions.BulkWriteAsync(listWrites);
+			if(listWrites.Count > 0)
+				await _submissions.BulkWriteAsync(listWrites);
 
 			return submissions;
+		}
+
+		public async Task RemoveManyAsync(string assignmentId, List<string> deletingStudents)
+		{
+			await _submissions.DeleteManyAsync(x => x.AssignmentId == assignmentId && deletingStudents.Contains(x.StudentUsername));
 		}
 	}
 }

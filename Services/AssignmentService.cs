@@ -10,9 +10,10 @@ namespace VirtualClassroom.Services
 	{
 		Task<Assignment> GetAsync(string assignmentId);
 		Task<Assignment> CreateOneAsync(Assignment assignment);
-		Assignment ValidateAssignment(Assignment assignment);
-		/*Assignment Update(string tutorId, string assignmentId, Assignment assignment);
-		bool Remove(string tutorId, string assignmentId);*/
+		Assignment ValidateAssignmentAsync(Assignment assignment);
+		Task<List<Assignment>> GetByTutorStatusAsync(string username, string filter);
+		Task UpdateOneAsync(string id, Assignment assignmentIn);
+		Task DeleteOneAsync(string id);
 	}
 
 	public class AssignmentService : IAssignmentService
@@ -34,13 +35,23 @@ namespace VirtualClassroom.Services
 			return x.FirstOrDefault();
 		}
 
+
+		public async Task<List<Assignment>> GetByTutorStatusAsync(string username, string filter)
+		{
+			var x = !string.IsNullOrWhiteSpace(filter) ?
+						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == username && assignment.Status == filter) :
+						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == username);
+
+			return x.ToList();
+		}
+
 		public async Task<Assignment> CreateOneAsync(Assignment assignment)
 		{
 			await _assignments.InsertOneAsync(assignment);
 			return assignment;
 		}
 
-		public Assignment ValidateAssignment(Assignment assignment)
+		public Assignment ValidateAssignmentAsync(Assignment assignment)
 		{
 			DateTime currentTime = DateTime.UtcNow;
 
@@ -52,7 +63,7 @@ namespace VirtualClassroom.Services
 				throw new Exception("Invalid PublishedAt");
 			}
 
-			if(assignment.PublishedAt > currentTime)
+			if (assignment.PublishedAt > currentTime)
 			{
 				assignment.Status = Enums.AssignmentStatus.SCHEDULED.ToString();
 			}
@@ -61,12 +72,12 @@ namespace VirtualClassroom.Services
 				assignment.Status = Enums.AssignmentStatus.ONGOING.ToString();
 			}
 
-			if(assignment.DeadlineDate == null || assignment.DeadlineDate < assignment.PublishedAt)
+			if (assignment.DeadlineDate == null || assignment.DeadlineDate < assignment.PublishedAt)
 			{
 				throw new Exception("Invalid DeadlineDate, must be non empty and greater published at date");
 			}
 
-			if(assignment.Students == null || assignment.Students.Count == 0)
+			if (assignment.Students == null || assignment.Students.Count == 0)
 			{
 				throw new Exception("Assignment must be assigned to a student(s)");
 			}
@@ -74,55 +85,14 @@ namespace VirtualClassroom.Services
 			return assignment;
 		}
 
-		
-
-		
-
-		// TODO: Update and Delete
-
-		/*public void UpdateOne(string id, Assignment assignmentIn) =>
-			_assignments.ReplaceOne(assignment => assignment.Id == id, assignmentIn);
-
-		public void RemoveOne(string id) =>
-			_books.DeleteOne(book => book.Id == id);*/
-
-		/*public Book Update(string userId, string bookId, Book bookParam)
+		public async Task UpdateOneAsync(string id, Assignment assignmentIn)
 		{
-			Book book = Get(bookId);
-
-			if (book == null)
-				return null;
-
-			if (userId != book.PostedBy)
-				return null;
-
-			if (!string.IsNullOrWhiteSpace(bookParam.BookName))
-				book.BookName = bookParam.BookName;
-
-			if (!string.IsNullOrWhiteSpace(bookParam.Category))
-				book.Category = bookParam.Category;
-
-			if (!string.IsNullOrWhiteSpace(bookParam.Author))
-				book.Author = bookParam.Author;
-
-			if (bookParam.Price >= 0)
-				book.Price = bookParam.Price;
-
-			UpdateOne(bookId, book);
-
-			return book;
+			await _assignments.ReplaceOneAsync(assignment => assignment.Id == id, assignmentIn);
 		}
 
-		public bool Remove(string userId, string bookId)
+		public async Task DeleteOneAsync(string id)
 		{
-			Book oldBook = Get(bookId);
-
-			if (userId != oldBook.PostedBy)
-				return false;
-
-			RemoveOne(bookId);
-
-			return true;
-		}*/
+			await _assignments.DeleteOneAsync(x => x.Id == id);
+		}
 	}
 }

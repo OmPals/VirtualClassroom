@@ -18,7 +18,15 @@
 		{
 			PENDING,
 			SUBMITTED,
-			OVERDUE
+			OVERDUE,
+			ALL
+		}
+
+		public enum ClientRequestStatus
+		{
+			BadRequest,
+			NotFound,
+			Forbidden
 		}
 	}
 }

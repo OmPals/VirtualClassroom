@@ -10,6 +10,7 @@ namespace VirtualClassroom.Models
 		[BsonRepresentation(BsonType.ObjectId)]
 		public string Id { get; set; }
 		public string StudentUsername { get; set; }
+		public string TutorUsername { get; set; }
 		public string AssignmentId { get; set; }
 		public DateTime SubmittedAt { get; set; }
 		public string Status { get; set; }

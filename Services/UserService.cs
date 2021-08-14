@@ -1,5 +1,7 @@
 ﻿using MongoDB.Driver;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VirtualClassroom.Helpers;
 using VirtualClassroom.Models;
@@ -12,6 +14,11 @@ namespace VirtualClassroom.Services
 		Task<User> AuthenticateAsync(string username, string password, Role role);
 		Task<User> CreateAsync(User user, string password);
 		Task<User> GetByIdAsync(string userId);
+		Task CreateUsersAssignmentSubmissions(List<AssignmentSubmission> assignmentSubmissions);
+		Task<User> GetByUsernameAsync(string username);
+		Task UpdateOne(string id, User userIn);
+		Task UpdateBatchSubmissionsAsync(Assignment newAssignment, bool remove);
+		Task<List<string>> GetValidUsersAsync(List<string> users);
 	}
 
 	public class UserService : IUserService
@@ -31,7 +38,15 @@ namespace VirtualClassroom.Services
 
 			return x.FirstOrDefault();
 		}
-			
+
+		public async Task<List<string>> GetValidUsersAsync(List<string> users)
+		{
+			var x = await _users.FindAsync<User>(x => users.Contains(x.Username));
+
+			List<string> validUsers = x.ToList().Select(s => s.Username).ToList();
+
+			return validUsers;
+		}
 
 		public async Task<User> GetByIdAsync(string id)
 		{
@@ -39,7 +54,7 @@ namespace VirtualClassroom.Services
 
 			return x.FirstOrDefault();
 		}
-			
+
 
 		public async Task<User> CreateAsync(User user)
 		{
@@ -47,8 +62,10 @@ namespace VirtualClassroom.Services
 			return user;
 		}
 
-		public void UpdateOne(string id, User userIn) =>
-			_users.ReplaceOne(user => user.Id == id, userIn);
+		public async Task UpdateOne(string id, User userIn)
+		{
+			await _users.ReplaceOneAsync(user => user.Id == id, userIn);
+		}
 
 		public void Remove(string id) =>
 			_users.DeleteOne(user => user.Id == id);
@@ -126,6 +143,69 @@ namespace VirtualClassroom.Services
 			using var hmac = new System.Security.Cryptography.HMACSHA512();
 			passwordSalt = hmac.Key;
 			passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+		}
+
+		public async Task CreateUsersAssignmentSubmissions(List<AssignmentSubmission> assignmentSubmissions)
+		{
+			var listWrites = new List<WriteModel<User>>();
+
+			foreach (AssignmentSubmission assignmentSubmission in assignmentSubmissions)
+			{
+				User student = await GetByUsernameAsync(assignmentSubmission.Submission.StudentUsername);
+
+				if (student == null) continue;
+
+				if (student.AssignmentSubmissions == null)
+				{
+					student.AssignmentSubmissions = new List<AssignmentSubmission>();
+				}
+
+				student.AssignmentSubmissions.Add(assignmentSubmission);
+
+				var filter = new FilterDefinitionBuilder<User>().Where(m => m.Id == student.Id);
+
+				listWrites.Add(new ReplaceOneModel<User>(filter, student));
+			}
+
+			if (listWrites.Count > 0)
+				await _users.BulkWriteAsync(listWrites);
+		}
+
+		public async Task UpdateBatchSubmissionsAsync(Assignment assignment, bool remove)
+		{
+			var listWrites = new List<WriteModel<User>>();
+
+			foreach (string x in assignment.Students)
+			{
+				User student = await GetByUsernameAsync(x);
+
+				List<AssignmentSubmission> assignmentSubmissions = student.AssignmentSubmissions;
+
+				AssignmentSubmission assignmentSubmission = assignmentSubmissions.FirstOrDefault(x => x.Assignment.Id == assignment.Id);
+
+				int index = assignmentSubmissions.IndexOf(assignmentSubmission);
+
+				if (index != -1)
+				{
+					if (remove)
+					{
+						assignmentSubmissions.RemoveAt(index);
+					}
+					else
+					{
+						assignmentSubmissions[index].Assignment = assignment;
+					}
+				}
+
+				student.AssignmentSubmissions = assignmentSubmissions;
+
+				var filter = new FilterDefinitionBuilder<User>().Where(m => m.Id == student.Id);
+
+				listWrites.Add(new ReplaceOneModel<User>(filter, student));
+			}
+
+			if (listWrites.Count > 0)
+				await _users.BulkWriteAsync(listWrites);
 		}
 	}
 }

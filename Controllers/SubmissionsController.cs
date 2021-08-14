@@ -13,17 +13,15 @@ namespace VirtualClassroom.Controllers
 	[ApiController]
 	public class SubmissionsController : ControllerBase
 	{
-		private readonly ISubmissionService _submissionService;
 		private readonly IStudentService _studentService;
 
-		public SubmissionsController(ISubmissionService submissionService, IStudentService studentService)
+		public SubmissionsController(IStudentService studentService)
 		{
-			_submissionService = submissionService;
 			_studentService = studentService;
 		}
 
-		[Authorize(Roles = "student")]
 		[HttpPost]
+		[Authorize(Roles = "student")]
 		public async Task<ActionResult> CreateSubmission([FromBody] Submission submission)
 		{
 			string username = User.FindFirstValue(ClaimTypes.Name);

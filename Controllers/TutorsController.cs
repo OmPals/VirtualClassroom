@@ -22,8 +22,8 @@ namespace VirtualClassroom.Controllers
 			_tutorService = tutorService;
 		}
 
-		[AllowAnonymous]
 		[HttpPost("authenticate")]
+		[AllowAnonymous]
 		public async Task<IActionResult> AuthenticateAsync([FromBody] AuthenticateModel req)
 		{
 			if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrEmpty(req.Password))
