@@ -39,11 +39,29 @@ namespace VirtualClassroom.Services
 		// Get list of assignments by tutor's user name and status filter
 		public async Task<List<Assignment>> GetByTutorStatusAsync(string tutorUsername, string statusFilter)
 		{
-			var x = !string.IsNullOrWhiteSpace(statusFilter) ?
-						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername && assignment.Status == statusFilter) :
-						await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername);
+			DateTime curr = DateTime.UtcNow;
 
-			return x.ToList();
+			if(!string.IsNullOrWhiteSpace(statusFilter))
+			{
+				if(statusFilter == Enums.AssignmentStatus.SCHEDULED.ToString())
+				{
+					var x = await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername && assignment.PublishedAt > curr);
+
+					return x.ToList();
+				}
+				else
+				{
+					var x = await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername && assignment.PublishedAt <= curr);
+
+					return x.ToList();
+				}
+			}
+			else
+			{
+				var x = await _assignments.FindAsync<Assignment>(assignment => assignment.Tutor == tutorUsername);
+
+				return x.ToList();
+			}
 		}
 
 		// Create assignment

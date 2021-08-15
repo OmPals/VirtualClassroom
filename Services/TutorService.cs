@@ -108,15 +108,7 @@ namespace VirtualClassroom.Services
 
 			List<Submission> submissions = await _submissionService.GetByAssignmentAsync(assignmentId);
 
-			DateTime curr = DateTime.UtcNow;
-
-			foreach(Submission submission in submissions)
-			{
-				if(submission.Status == Enums.SubmissionStatus.PENDING.ToString() && assignment.DeadlineDate < curr)
-				{
-					submission.Status = Enums.SubmissionStatus.OVERDUE.ToString();
-				}
-			}
+			submissions = submissions.Select(x => _submissionService.ValidateSubmissionStatus(x, assignment.DeadlineDate)).ToList();
 
 			return submissions;
 		}
@@ -132,20 +124,7 @@ namespace VirtualClassroom.Services
 
 			List<Assignment> assignments = await _assignmentService.GetByTutorStatusAsync(tutorUsername, statusFilter);
 
-			assignments = UpdateManyAssignmentStatus(assignments);
-
-			return assignments;
-		}
-
-		// Update assignment status
-		public List<Assignment> UpdateManyAssignmentStatus(List<Assignment> assignments)
-		{
 			assignments = assignments.Select(x => _assignmentService.ValidateAssignment(x)).ToList();
-
-			foreach (Assignment assignment in assignments)
-			{
-				Task task = Task.Run(() => UpdateOneAssignmentAsync(assignment.Id, assignment, assignment.Tutor));
-			}
 
 			return assignments;
 		}

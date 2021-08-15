@@ -1,4 +1,5 @@
 ﻿using MongoDB.Driver;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ namespace VirtualClassroom.Services
 		Task UpdateOneAsync(Submission submissionIn);
 		Task<List<Submission>> GetByAssignmentAsync(string assignmentId);
 		Task RemoveManyAsync(string assignmentId, List<string> deletingStudents);
+		Submission ValidateSubmissionStatus(Submission submission, DateTime deadline);
 	}
 
 	public class SubmissionService : ISubmissionService
@@ -76,6 +78,36 @@ namespace VirtualClassroom.Services
 		public async Task RemoveManyAsync(string assignmentId, List<string> deletingStudents)
 		{
 			await _submissions.DeleteManyAsync(x => x.AssignmentId == assignmentId && deletingStudents.Contains(x.StudentUsername));
+		}
+
+		public Submission ValidateSubmissionStatus(Submission submission, DateTime deadline)
+		{
+			DateTime curr = DateTime.UtcNow;
+
+			if(submission.SubmittedAt != DateTime.MinValue)
+			{
+				if(submission.SubmittedAt <= deadline)
+				{
+					submission.Status = Enums.SubmissionStatus.SUBMITTED.ToString();
+				}
+				else
+				{
+					submission.Status = Enums.SubmissionStatus.OVERDUE.ToString();
+				}
+			}
+			else
+			{
+				if(curr <= deadline)
+				{
+					submission.Status = Enums.SubmissionStatus.PENDING.ToString();
+				}
+				else
+				{
+					submission.Status = Enums.SubmissionStatus.OVERDUE.ToString();
+				}
+			}
+
+			return submission;
 		}
 	}
 }

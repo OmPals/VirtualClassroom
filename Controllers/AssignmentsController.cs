@@ -22,15 +22,6 @@ namespace VirtualClassroom.Controllers
 			_studentService = studentService;
 		}
 
-		/// <summary>
-		/// Create assignment
-		/// </summary>
-		/// <param name="assignmentReq"></param>
-		/// <returns>
-		/// Assignment with an Id the tutor created
-		/// Exceptions: 
-		/// Bad Request
-		/// </returns>
 		[HttpPost]
 		[Authorize(Roles = "tutor")]
 		public async Task<ActionResult<Assignment>> CreateAssignmentAsync([FromBody] Assignment assignmentReq)
@@ -86,7 +77,7 @@ namespace VirtualClassroom.Controllers
 
 		[HttpGet]
 		[Authorize]
-		public async Task<ActionResult> GetAssignmentsByFilter([FromQuery] string filterAssignments, [FromQuery] string filterSubmissions)
+		public async Task<ActionResult> GetAssignmentsByFilter([FromQuery] string publishedAt, [FromQuery] string status)
 		{
 			string username = User.FindFirstValue(ClaimTypes.Name);
 
@@ -94,7 +85,7 @@ namespace VirtualClassroom.Controllers
 			{
 				try
 				{
-					List<Assignment> assignments = await _tutorService.GetAssignmentsByTutorStatusAsync(username, filterAssignments);
+					List<Assignment> assignments = await _tutorService.GetAssignmentsByTutorStatusAsync(username, publishedAt);
 
 					return Ok(assignments);
 				}
@@ -107,7 +98,7 @@ namespace VirtualClassroom.Controllers
 			{
 				try
 				{
-					List<AssignmentSubmission> assignmentSubmissions = await _studentService.GetAssignmentSubmissionByFilterAsync(username, filterAssignments, filterSubmissions);
+					List<AssignmentSubmission> assignmentSubmissions = await _studentService.GetAssignmentSubmissionByFilterAsync(username, publishedAt, status);
 
 					return Ok(assignmentSubmissions);
 				}
@@ -168,7 +159,8 @@ namespace VirtualClassroom.Controllers
 				return BadRequest(new { message = ex.Message });
 			}
 
-			return CreatedAtRoute("GetAssignment", new { assignmentId = submission.Id }, submission);
+			return CreatedAtRoute("GetAssignment", new { assignmentId = submission.Id }, 
+				new { submission.Id, submission.SubmittedAt, submission.Status });
 		}
 	}
 }
