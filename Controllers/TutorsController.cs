@@ -21,6 +21,11 @@ namespace VirtualClassroom.Controllers
 			_tutorService = tutorService;
 		}
 
+		/// <summary>
+		/// Authentication endpoint for tutors
+		/// </summary>
+		/// <param name="req"></param>
+		/// <returns>JWT with tutor role</returns>
 		[HttpPost("authenticate")]
 		[AllowAnonymous]
 		public async Task<IActionResult> AuthenticateAsync([FromBody] AuthenticateModel req)
