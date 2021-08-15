@@ -18,7 +18,7 @@ namespace VirtualClassroom.Services
 		Task<User> GetByUsernameAsync(string username);
 		Task UpdateOneAsync(string id, User userIn);
 		Task UpdateBatchAssignmentSubmissionsAsync(Assignment newAssignment, bool remove);
-		Task<List<string>> GetValidUsersAsync(List<string> users);
+		Task<List<string>> GetValidStudentsAsync(List<string> users);
 	}
 
 	public class UserService : IUserService
@@ -43,9 +43,9 @@ namespace VirtualClassroom.Services
 
 		// Remove unregistered usernames from the list
 		// Only keep authenitcated users
-		public async Task<List<string>> GetValidUsersAsync(List<string> users)
+		public async Task<List<string>> GetValidStudentsAsync(List<string> users)
 		{
-			var x = await _users.FindAsync<User>(x => users.Contains(x.Username));
+			var x = await _users.FindAsync<User>(x => users.Contains(x.Username) && x.Role == Enums.Role.student.ToString());
 
 			List<string> validUsers = x.ToList().Select(s => s.Username).ToList();
 

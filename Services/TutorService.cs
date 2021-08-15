@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VirtualClassroom.Models;
 
@@ -43,7 +44,7 @@ namespace VirtualClassroom.Services
 		{
 			assignment.Tutor = tutor;
 
-			assignment = _assignmentService.ValidateAssignmentAsync(assignment);
+			assignment = _assignmentService.ValidateAssignment(assignment);
 
 			Assignment newAssignment = await _assignmentService.CreateOneAsync(assignment);
 
@@ -62,7 +63,7 @@ namespace VirtualClassroom.Services
 			// Initiate AssignmentSubmission
 			List<AssignmentSubmission> assignmentSubmissions = new List<AssignmentSubmission>();
 
-			assignment.Students = await _userService.GetValidUsersAsync(assignment.Students);
+			assignment.Students = await _userService.GetValidStudentsAsync(assignment.Students);
 
 			foreach (string student in assignment.Students)
 			{
@@ -105,8 +106,17 @@ namespace VirtualClassroom.Services
 				throw new Exception("Assignment not found");
 			}
 
-			// Paginate
 			List<Submission> submissions = await _submissionService.GetByAssignmentAsync(assignmentId);
+
+			DateTime curr = DateTime.UtcNow;
+
+			foreach(Submission submission in submissions)
+			{
+				if(submission.Status == Enums.SubmissionStatus.PENDING.ToString() && assignment.DeadlineDate < curr)
+				{
+					submission.Status = Enums.SubmissionStatus.OVERDUE.ToString();
+				}
+			}
 
 			return submissions;
 		}
@@ -120,8 +130,22 @@ namespace VirtualClassroom.Services
 				throw new Exception("Invalid filter for assignments");
 			}
 
-			// Paginate
 			List<Assignment> assignments = await _assignmentService.GetByTutorStatusAsync(tutorUsername, statusFilter);
+
+			assignments = UpdateManyAssignmentStatus(assignments);
+
+			return assignments;
+		}
+
+		// Update assignment status
+		public List<Assignment> UpdateManyAssignmentStatus(List<Assignment> assignments)
+		{
+			assignments = assignments.Select(x => _assignmentService.ValidateAssignment(x)).ToList();
+
+			foreach (Assignment assignment in assignments)
+			{
+				Task task = Task.Run(() => UpdateOneAssignmentAsync(assignment.Id, assignment, assignment.Tutor));
+			}
 
 			return assignments;
 		}
@@ -140,7 +164,7 @@ namespace VirtualClassroom.Services
 				throw new Exception("Assignment does not exist or tutor does not have access to it");
 			}
 
-			assignment.Students = await _userService.GetValidUsersAsync(assignment.Students);
+			assignment.Students = await _userService.GetValidStudentsAsync(assignment.Students);
 
 			List<string> oldStudents = oldAssignment.Students;
 			List<string> newStudents = assignment.Students;
@@ -182,7 +206,7 @@ namespace VirtualClassroom.Services
 				oldAssignment.DeadlineDate = newDeadline;
 			}
 
-			Assignment newAssignment = _assignmentService.ValidateAssignmentAsync(oldAssignment);
+			Assignment newAssignment = _assignmentService.ValidateAssignment(oldAssignment);
 
 			newAssignment.Students = assignment.Students;
 			await _assignmentService.UpdateOneAsync(assignmentId, newAssignment);

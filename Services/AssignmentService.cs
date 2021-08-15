@@ -10,7 +10,7 @@ namespace VirtualClassroom.Services
 	{
 		Task<Assignment> GetAsync(string assignmentId);
 		Task<Assignment> CreateOneAsync(Assignment assignment);
-		Assignment ValidateAssignmentAsync(Assignment assignment);
+		Assignment ValidateAssignment(Assignment assignment);
 		Task<List<Assignment>> GetByTutorStatusAsync(string username, string filter);
 		Task UpdateOneAsync(string id, Assignment assignmentIn);
 		Task DeleteOneAsync(string id);
@@ -34,7 +34,7 @@ namespace VirtualClassroom.Services
 			var x = await _assignments.FindAsync<Assignment>(assignment => assignment.Id == id);
 
 			return x.FirstOrDefault();
-		}
+		} 
 
 		// Get list of assignments by tutor's user name and status filter
 		public async Task<List<Assignment>> GetByTutorStatusAsync(string tutorUsername, string statusFilter)
@@ -54,7 +54,7 @@ namespace VirtualClassroom.Services
 		}
 
 		// Validate the properties of assignment
-		public Assignment ValidateAssignmentAsync(Assignment assignment)
+		public Assignment ValidateAssignment(Assignment assignment)
 		{
 			DateTime currentTime = DateTime.UtcNow;
 
@@ -78,11 +78,6 @@ namespace VirtualClassroom.Services
 			if (assignment.DeadlineDate == null || assignment.DeadlineDate < assignment.PublishedAt)
 			{
 				throw new Exception("Invalid DeadlineDate, must be non empty and greater published at date");
-			}
-
-			if (assignment.Students == null || assignment.Students.Count == 0)
-			{
-				throw new Exception("Assignment must be assigned to a student(s)");
 			}
 
 			return assignment;

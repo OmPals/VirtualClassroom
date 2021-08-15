@@ -112,6 +112,8 @@ namespace VirtualClassroom.Services
 
 			List<AssignmentSubmission> assignmentSubmissions = user.AssignmentSubmissions;
 
+
+
 			if (!string.IsNullOrWhiteSpace(assignmentStatusFilter))
 			{
 				assignmentSubmissions = assignmentSubmissions.Where(x => x.Assignment.Status == assignmentStatusFilter).ToList();
@@ -121,6 +123,25 @@ namespace VirtualClassroom.Services
 			{
 				assignmentSubmissions = assignmentSubmissions.Where(x => x.Submission.Status == submissionStatusFilter).ToList();
 			}
+
+			return assignmentSubmissions;
+		}
+
+		public List<AssignmentSubmission> UpdateAssignmentSubmissions(List<AssignmentSubmission> assignmentSubmissions)
+		{
+			DateTime curr = DateTime.UtcNow;
+
+			assignmentSubmissions = assignmentSubmissions.Select(x =>
+			{
+				x.Assignment = _assignmentService.ValidateAssignment(x.Assignment);
+
+				if (x.Assignment.DeadlineDate < curr && x.Submission.Status == Enums.SubmissionStatus.PENDING.ToString())
+				{
+					x.Submission.Status = Enums.SubmissionStatus.OVERDUE.ToString();
+				}
+
+				return x;
+			}).ToList();
 
 			return assignmentSubmissions;
 		}
@@ -136,6 +157,13 @@ namespace VirtualClassroom.Services
 			}
 
 			Submission submission = await _submissionService.GetByAssignmentStudentAsync(assignmentId, studentUsername);
+
+			DateTime curr = DateTime.UtcNow;
+
+			if (assignment.DeadlineDate < curr && submission.Status == Enums.SubmissionStatus.PENDING.ToString())
+			{
+				submission.Status = Enums.SubmissionStatus.OVERDUE.ToString();
+			}
 
 			return submission;
 		}

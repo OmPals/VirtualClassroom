@@ -26,7 +26,11 @@ namespace VirtualClassroom.Controllers
 		/// Create assignment
 		/// </summary>
 		/// <param name="assignmentReq"></param>
-		/// <returns></returns>
+		/// <returns>
+		/// Assignment with an Id the tutor created
+		/// Exceptions: 
+		/// Bad Request
+		/// </returns>
 		[HttpPost]
 		[Authorize(Roles = "tutor")]
 		public async Task<ActionResult<Assignment>> CreateAssignmentAsync([FromBody] Assignment assignmentReq)
