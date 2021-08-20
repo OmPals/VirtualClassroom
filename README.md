@@ -27,7 +27,7 @@ Link to POSTMAN collection: https://www.getpostman.com/collections/4c06186b98acd
 #### Failure scenario
 - When not specifying the fields, system returns with 400 status code.
 
-# Authentication endpoint for tutors
+# Authentication endpoint for students
 
 ## Description
 - Authenticates a user as a student in virtual classroom system
